@@ -1,0 +1,87 @@
+rules_version = '2';
+// ---------------------------------------------------------------------------
+// Firestore security rules for the JB Knowledge Park CSE Dashboard.
+// Deploy with: firebase deploy --only firestore:rules
+// (requires the Firebase CLI: npm install -g firebase-tools; firebase init)
+// ---------------------------------------------------------------------------
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function myRole() { return isSignedIn() ? myProfile().role : null; }
+    function isAdmin()       { return myRole() in ['Super Admin', 'HOD']; }
+    function isCoordinator() { return myRole() == 'Department Coordinator'; }
+    function isDataEntry()   { return myRole() == 'Data Entry Operator'; }
+    function isFaculty()     { return myRole() == 'Faculty'; }
+    // Viewer: intentionally has no write() path below — read-only by omission.
+
+    // ---- users/{uid}: profile + role. Everyone can read (needed for name
+    // lookups in the UI); a user may only create/edit their own profile and
+    // may never change their own role — only Super Admin/HOD can promote.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid
+                     && request.resource.data.role in ['Viewer']; // sign-ups start as Viewer
+      allow update: if isAdmin()
+                     || (request.auth.uid == uid && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
+    }
+
+    // Departments: Super Admin only, even HOD cannot create/delete a
+    // department — matches the app's canAct() SUPER_ADMIN_ONLY list.
+    match /departments/{id} {
+      allow read: if isSignedIn();
+      allow write: if myRole() == 'Super Admin';
+    }
+
+    match /programs/{id}  { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /rooms/{id}     { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /settings/{id}  { allow read: if isSignedIn(); allow write: if isAdmin(); }
+
+    match /sections/{id}  { allow read: if isSignedIn(); allow write: if isAdmin() || isCoordinator(); }
+    match /courses/{id}   { allow read: if isSignedIn(); allow write: if isAdmin() || isCoordinator(); }
+    match /timetable/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isCoordinator(); }
+
+    match /faculty/{id}   { allow read: if isSignedIn(); allow write: if isAdmin() || isDataEntry(); }
+
+    // Students: full read/write for Admin/Data Entry. Faculty may also
+    // update ONLY attendance/marks/assignments/backlogs (matches "Mark
+    // Attendance / Update Marks" in the app) — never roll number, status,
+    // section, etc. Firestore enforces this field allowlist itself, not
+    // just the UI, so a modified client can't widen it.
+    match /students/{id} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin() || isDataEntry();
+      allow update: if isAdmin() || isDataEntry()
+                     || (isFaculty() && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['att', 'marks', 'assign', 'backlogs']));
+    }
+
+    // Faculty may update syllabus progress (the app only exposes this for
+    // their own courses; for stricter server-side enforcement, add a
+    // cross-collection get() on /courses/{courseId} to check facultyId).
+    match /syllabus/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isCoordinator() || isFaculty();
+    }
+
+    // Attendance: deterministic doc IDs (section+subject+period+date+student)
+    // mean a write either creates or overwrites the one true record for that
+    // combination — there is no separate "query first" step and no way for
+    // a duplicate to exist. Coordinator/HOD/Super Admin/Faculty can mark;
+    // everyone signed in can read (students reading only their own would
+    // need a real student-auth model, which this app doesn't have yet).
+    match /attendance/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isCoordinator() || isFaculty();
+    }
+
+    // Append-only audit log.
+    match /activities/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "cse-dashboard-firebase-seed",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Seed script dependencies for the CSE Dashboard Firestore backend. The dashboard itself (index.html) needs no build step or npm install — it loads Firebase/Supabase from CDN in the browser.",
+  "scripts": {
+    "seed": "node seed-firestore.cjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

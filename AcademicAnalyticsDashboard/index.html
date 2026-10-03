@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CSE Department Dashboard — JB Knowledge Park</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="boot-splash" class="hide"></div>
+<div id="shell">
+  <div id="sidebar-slot"></div>
+  <div id="main">
+    <div id="header-slot"></div>
+    <div id="filterbar-slot"></div>
+    <div id="content-scroll">
+      <div id="content"></div>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="drawer-overlay" data-act="close-drawer"></div>
+<div class="drawer" id="drawer"></div>
+<div class="overlay" id="modal-overlay" data-act="close-modal"></div>
+<div class="modal" id="modal"></div>
+<div id="toast-host"></div>
+
+<!-- Demo data generator (also acts as local fallback/seed shape reference) -->
+<script src="data.js"></script>
+<!-- Dashboard UI, all pages, event delegation, auth/roles layer -->
+<script src="app.js"></script>
+<!-- Firebase Auth + Firestore + Supabase Storage wiring. Boots the app
+     itself (calls window.CSEApp.boot(...)) once it knows whether a real
+     backend is configured — see backend/firebase-init.mjs and
+     backend/supabase-init.mjs to add your project credentials. -->
+<script type="module" src="backend/integration.mjs"></script>
+</body>
+</html>
