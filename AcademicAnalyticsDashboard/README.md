@@ -1,6 +1,6 @@
-# CSE Department Dashboard — Firebase + Supabase edition
+# Academic-Analytics-Dashboard — Firebase + Supabase edition
 
-This is the same JB Knowledge Park CSE Department dashboard, wired to a real
+This is the same Academic-Analytics-Dashboard, wired to a real
 backend: **Firebase** for Authentication + Firestore (data), and
 **Supabase Storage** for uploaded files (student documents, ERP import
 files). It implements the 6 roles — Super Admin, HOD, Department
